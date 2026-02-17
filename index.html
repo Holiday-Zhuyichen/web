@@ -2,18 +2,51 @@
 <html>
     <head>
         <title>Holiday Zhu</title>
+        <meta http-equiv="refresh" content="5;url=https://holiday-zhuyichen.github.io/holidayzhu.github.io/menu.html">
     </head>
     <style>
         .under_dev {
             color: red;
             font-weight: bold;
-            size: 44px;
+            size: 40px;
         }
     </style>
-    <body>
-        <p class="under_dev">Sorry, this website is stil under development.</p>
-        <p class="under_dev">抱歉，这个网页正在开发。</p>
-        <footer>Holiday Zhu</footer>
-        <footer>竺逸晨</footer>
+    <body> 
+        <button onclick="preferred='zh';getLang();">中文</button>
+        <button onclick="preferred='en';getLang();">English</button>
+        <div id="eng" hidden>
+            <strong id="jseng">JavaScript is disabled. You may suffer from bad user experience.</strong>
+            <p>You will get redirected soon. If not, please click
+                <a href="https://holiday-zhuyichen.github.io/holidayzhu.github.io/menu.html">here</a>
+            </p>
+            <a href="mailto:holidayzhu@hotmail.com">Contact us</a>
+            <p>You agree to our <a href="https://holiday-zhuyichen.github.io/holidayzhu.github.io/terms-and-conditions.html">T&C</a></p>
+            <footer>Holiday Zhu</footer>
+        </div>
+        <div id="zh">
+            <strong id="jszh">禁用JavaScript。您可能遇到糟糕的用户体验。</strong>
+            <p>您将在几秒钟后被重定向。如果没有，请点击
+                <a href="https://holidayzhu.github.io/">这里</a>
+            </p>
+            <a href="mailto:holidayzhu@hotmail.com">联系我们</a>
+            <p>您同意我们的<a href="https://holiday-zhuyichen.github.io/holidayzhu.github.io/terms-and-conditions.html">条款和条件</a></p>
+            <footer>竺逸晨</footer>
+        </div>
+        <script>
+            var preferred=null;
+            getLang();
+            function getLang() {
+                var lang = preferred ||navigator.language || navigator.userLanguage;
+                if (lang.indexOf('zh') !== -1) {
+                    document.getElementById("eng").hidden = true;
+                    document.getElementById("zh").hidden = false;
+                } else {
+                    document.getElementById("eng").hidden = false;
+                    document.getElementById("zh").hidden = true;
+                }
+            }
+            document.getElementById("jseng").hidden = true;
+            document.getElementById("jszh").hidden = true;
+        </script>
     </body>
 </html>
